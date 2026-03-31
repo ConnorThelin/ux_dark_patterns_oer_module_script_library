@@ -58,3 +58,22 @@ modified_data <- raw_data %>%
     comments = "anything_else",
     image = "if_you_have_screenshots_or_other_documentation_you_can_upload_to_10_files_of_100_mb_in_size_via_one_submission"
   )
+
+
+# ANONYMIZE ---------------------------------------------------------------
+# Anonymize names via MD5 hashing
+
+anonymize_names <- function(name_column, algo = "md5") {
+  sapply(name_column, function(single_name) {
+    if (is.na(single_name) || single_name == "") {
+      return(NA)
+    }
+    else {
+      tolower(trimws(single_name))
+      return(digest(single_name, algo = algo))
+    }
+  })
+}
+
+modified_data$name <- anonymize_names(modified_data$name)
+
