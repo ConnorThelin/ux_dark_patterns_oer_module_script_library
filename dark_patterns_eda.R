@@ -255,7 +255,6 @@ summary_stats %>%
 modified_data %>%
   filter(!is.na(category)) %>%
   select(hash_id, category) %>%
-  # Pair selections back to respondents
   inner_join(., ., by = "hash_id", relationship = "many-to-many") %>%
   filter(as.integer(category.x) < as.integer(category.y)) %>%
   count(category.x, category.y, sort = TRUE)
