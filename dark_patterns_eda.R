@@ -38,15 +38,14 @@ invisible(lapply(packages, load_or_install))
 
 
 # RAW DATA ----------------------------------------------------------------
-
+# Pulls from Google Sheets; guarded by exists() to prevent redundant API calls on re-runs within the same session
 if (!exists("raw_data")) {
   sheet_url <- "https://docs.google.com/spreadsheets/d/1vMhttsyyit3jwvAmZ0DEi_jWj7Hp-RS5SQR6I_E1ZFQ/edit?usp=sharing"
   raw_data <- read_sheet(sheet_url)
 }
 
-
 # RENAME ROWS -------------------------------------------------------------
-
+# clean_names() snake_cases all column names; rename() replaces Google Form question strings with readable column names
 modified_data <- raw_data %>%
   clean_names() %>%
   rename(
@@ -63,9 +62,8 @@ modified_data <- raw_data %>%
     image = "if_you_have_screenshots_or_other_documentation_you_can_upload_to_10_files_of_100_mb_in_size_via_one_submission"
   )
 
-
 # ANONYMIZE ---------------------------------------------------------------
-# Anonymize names via MD5 hashing
+# Anonymize names via MD5 hashing, empty names results in NA
 # TODO Generate more human friendly IDs or use different anonymization method
 # TODO Investigate building an anonymization screen that contains identifiers for school, course name, etc
 
@@ -83,10 +81,15 @@ anonymize_names <- function(name_column, algo = "md5") {
 modified_data$name <- anonymize_names(modified_data$name)
 modified_data <- rename(modified_data, hash_id = name)
 
-# ANALYTICS ---------------------------------------------------------------
-# TODO Count of each pattern
+# ADD REPONSE ID ----------------------------------------------------------
+# Assigns stable integer ID
+modified_data <- modified_data %>%
+  mutate(response_id = row_number()) %>%
+  relocate(response_id, .before = hash_id)
 
-# BUILD COUNTS
+
+# SUMMARY STATS: RESPONSE COUNTS ------------------------------------------
+# Counts Yes / Unsure / No responses to the dark pattern encounter question
 # TODO Add capability to catch NAs into Unsure
 summary_stats <- data.frame(
   total_count  = nrow(modified_data),
@@ -95,12 +98,12 @@ summary_stats <- data.frame(
   no_count     = nrow(filter(modified_data, dark_pattern_interaction == "No"))
 )
 
-# ERROR CHECK: BUILD COUNTS
+# Sanity check: yes + unsure + no should equal total
 if (summary_stats$total_count != summary_stats$yes_count + summary_stats$unsure_count + summary_stats$no_count) {
   print("ERROR: total != combined count")
 }
 
-# BUILD PCT
+# SUMMARY STATS: RESPONSE PCT ---------------------------------------------
 # TODO Add error check
 summary_stats <- summary_stats %>%
   select(total_count, yes_count, unsure_count, no_count) %>%
@@ -113,7 +116,8 @@ summary_stats <- summary_stats %>%
   relocate(unsure_pct, .after = unsure_count) %>%
   relocate(no_pct, .after = no_count)
 
-# BUILD DATE RANGE
+# SUMMARY STATS: DATE RANGE -----------------------------------------------
+# Captures collection window from first to last timestamp
 # TODO Add error check
 # TODO Add tracking for most relevant day, time, etc
 # TODO Force data format (should be received as proper format though)
@@ -125,8 +129,11 @@ summary_stats <- summary_stats %>%
     time_span_months = floor(as.numeric(difftime(max(modified_data$timestamp), min(modified_data$timestamp), units = "weeks")))
   )
 
-# BUILD CONCERN RANGE
-# TODO Investigate how to replace NA values
+
+# SUMMARY STATS: CONCERN LEVEL --------------------------------------------
+# Concern is a 1-5 Likert scale
+# TODO: Investigate NA replacement strategies
+
 summary_stats <- summary_stats %>%
   mutate(
     mean_concern     = mean(modified_data$concern_level, na.rm = TRUE),
@@ -136,8 +143,8 @@ summary_stats <- summary_stats %>%
     na_concern_pct   = na_concern_count / total_count
   )
 
-# TEST BLOCK, NA REPLACEMENT ----------------------------------------------
-
+# TEST BLOCK: NA REPLACEMENT ----------------------------------------------
+# Compares the effect of replacing concern_level NAs with mean vs median
 
 summary_stats_na_replacement_test_mean <- summary_stats %>%
   mutate(
@@ -175,13 +182,16 @@ cat(sprintf("NAs:    %d\n\n", summary_stats_na_replacement_test_median$na_concer
 
 
 # BUILD INTERACTION ANALYSIS --------------------------------------------------------
-# TODO Investigate benefits between elongation (1 row/selection) vs widening (1 col/selection)
 # This separates each row into multiple rows per selection, delineated on "),"; splits unknown categories into "Other". Translates data from n-respondents to n-selections
+# TODO Investigate benefits between elongation (1 row/selection) vs widening (1 col/selection)
+# TODO Add a way to collect NAs only associated with "No" in the encounter question
+
+pre_elongation_data <- modified_data
 
 modified_data <- modified_data %>%
+  filter(!is.na(involved_pattern)) %>%
   separate_rows(involved_pattern, sep = "(?<=\\)), ") %>%
   mutate(category = case_when(
-    is.na(involved_pattern)                                 ~ NA,
     str_detect(involved_pattern, "Social Proof")            ~ "Social Proof",
     str_detect(involved_pattern, "Scarcity")                ~ "Scarcity",
     str_detect(involved_pattern, "Urgency")                 ~ "Urgency",
@@ -204,6 +214,11 @@ modified_data <- modified_data %>%
     "Other"
   )))
 
+# SUMMARY STATS: CATEGORY COUNTS ------------------------------------------
+# Counts selections per dark pattern category from the elongated data
+# na_interaction_count counts respondents with no pattern selected (from pre-elongation data), expected for "No" responses to dark_pattern_interaction
+# unwarranted_na_count flags respondents who answered Yes/Unsure but still left the pattern question blank, these are data errors
+
 summary_stats <- summary_stats %>%
   mutate(
     social_proof_count           = sum(modified_data$category == "Social Proof", na.rm = TRUE),
@@ -215,8 +230,24 @@ summary_stats <- summary_stats %>%
     coerced_action_count         = sum(modified_data$category == "Coerced Action", na.rm = TRUE),
     asymmetric_choice_count      = sum(modified_data$category == "Asymmetric Choice", na.rm = TRUE),
     other_interaction_count      = sum(modified_data$category == "Other", na.rm = TRUE),
-    na_interaction_count         = sum(is.na(modified_data$category))
+    na_interaction_count         = sum(is.na(pre_elongation_data$involved_pattern)),
+    na_interaction_pct           = na_interaction_count / total_count
   )
+
+# Category selection frequency
+modified_data %>%
+  count(category, sort = TRUE)
+
+# CHECK UNWARRANTED NAs ---------------------------------------------------
+
+summary_stats <- summary_stats %>%
+  mutate(
+    unwarranted_na_count = pre_elongation_data %>%
+      filter(dark_pattern_interaction %in% c("Yes", "Unsure") & is.na(involved_pattern)) %>%
+      nrow()
+  )
+
+# SUMMARY STATS: READ-OUT -------------------------------------------------
 
 summary_stats %>%
   mutate(across(everything(), as.character)) %>%
@@ -224,4 +255,16 @@ summary_stats %>%
   mutate(output = paste0(metric, " : ", value)) %>%
   pull(output) %>%
   cat(sep = "\n")
+
+# Checks the most common pairs of dark patterns selected together
+# Self-joins elongated data on hash_id to create all category pairs per respondent
+modified_data %>%
+  filter(!is.na(category)) %>%
+  select(hash_id, category) %>%
+  # Pair selections back to respondents
+  inner_join(., ., by = "hash_id", relationship = "many-to-many") %>%
+  filter(as.integer(category.x) < as.integer(category.y)) %>%
+  count(category.x, category.y, sort = TRUE)
+
+
 
