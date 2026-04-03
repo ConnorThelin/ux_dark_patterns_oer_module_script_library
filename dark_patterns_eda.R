@@ -174,5 +174,54 @@ cat(sprintf("SD:     %.4f\n", summary_stats_na_replacement_test_median$sd_concer
 cat(sprintf("NAs:    %d\n\n", summary_stats_na_replacement_test_median$na_concern_count_filled))
 
 
+# BUILD INTERACTION ANALYSIS --------------------------------------------------------
+# TODO Investigate benefits between elongation (1 row/selection) vs widening (1 col/selection)
+# This separates each row into multiple rows per selection, delineated on "),"; splits unknown categories into "Other". Translates data from n-respondents to n-selections
 
+modified_data <- modified_data %>%
+  separate_rows(involved_pattern, sep = "(?<=\\)), ") %>%
+  mutate(category = case_when(
+    is.na(involved_pattern)                                 ~ NA,
+    str_detect(involved_pattern, "Social Proof")            ~ "Social Proof",
+    str_detect(involved_pattern, "Scarcity")                ~ "Scarcity",
+    str_detect(involved_pattern, "Urgency")                 ~ "Urgency",
+    str_detect(involved_pattern, "Obstruction")             ~ "Obstruction",
+    str_detect(involved_pattern, "Sneaking")                ~ "Sneaking",
+    str_detect(involved_pattern, "Interface Interference")  ~ "Interface Interference",
+    str_detect(involved_pattern, "Coerced Action")          ~ "Coerced Action",
+    str_detect(involved_pattern, "Asymmetric Choice")       ~ "Asymmetric Choice",
+    TRUE                                                    ~ "Other"
+  ),
+  category = factor(category, levels = c(
+    "Social Proof",
+    "Scarcity",
+    "Urgency",
+    "Obstruction",
+    "Sneaking",
+    "Interface Interference",
+    "Coerced Action",
+    "Asymmetric Choice",
+    "Other"
+  )))
+
+summary_stats <- summary_stats %>%
+  mutate(
+    social_proof_count           = sum(modified_data$category == "Social Proof", na.rm = TRUE),
+    scarcity_count               = sum(modified_data$category == "Scarcity", na.rm = TRUE),
+    urgency_count                = sum(modified_data$category == "Urgency", na.rm = TRUE),
+    obstruction_count            = sum(modified_data$category == "Obstruction", na.rm = TRUE),
+    sneaking_count               = sum(modified_data$category == "Sneaking", na.rm = TRUE),
+    interface_interference_count = sum(modified_data$category == "Interface Interference", na.rm = TRUE),
+    coerced_action_count         = sum(modified_data$category == "Coerced Action", na.rm = TRUE),
+    asymmetric_choice_count      = sum(modified_data$category == "Asymmetric Choice", na.rm = TRUE),
+    other_interaction_count      = sum(modified_data$category == "Other", na.rm = TRUE),
+    na_interaction_count         = sum(is.na(modified_data$category))
+  )
+
+summary_stats %>%
+  mutate(across(everything(), as.character)) %>%
+  pivot_longer(everything(), names_to = "metric", values_to = "value") %>%
+  mutate(output = paste0(metric, " : ", value)) %>%
+  pull(output) %>%
+  cat(sep = "\n")
 
