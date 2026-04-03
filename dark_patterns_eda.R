@@ -1,27 +1,30 @@
-
 # SETUP -------------------------------------------------------------------
 
 target_dir <- "C:/Users/conno/OneDrive/School/UW_2023-20XX/CSS Independent Study/R Version/Dark Patterns R"
-if (getwd() != target_dir)
+if (getwd() != target_dir) {
   setwd(target_dir)
+}
 rm(target_dir)
 
 
 # PACKAGES ----------------------------------------------------------------
 
 load_or_install <- function(pkg) {
-  if (!requireNamespace(pkg, quietly = TRUE))
+  if (!requireNamespace(pkg, quietly = TRUE)) {
     install.packages(pkg)
+  }
   suppressPackageStartupMessages(library(pkg, character.only = TRUE))
 }
 
-packages <- c("tidyverse",
-              "ggplot2",
-              "googlesheets4",
-              "googledrive",
-              "digest",
-              "janitor"
-              )
+packages <- c(
+  "tidyverse",
+  "ggplot2",
+  "googlesheets4",
+  "googledrive",
+  "digest",
+  "janitor",
+  "styler"
+)
 invisible(lapply(packages, load_or_install))
 
 # Usages:
@@ -31,6 +34,7 @@ invisible(lapply(packages, load_or_install))
 # googledrive: Google Drive Integration
 # digest: anonymization
 # janitor: clean_names()
+# styler: formatting
 
 
 # RAW DATA ----------------------------------------------------------------
@@ -62,18 +66,113 @@ modified_data <- raw_data %>%
 
 # ANONYMIZE ---------------------------------------------------------------
 # Anonymize names via MD5 hashing
+# TODO Generate more human friendly IDs or use different anonymization method
+# TODO Investigate building an anonymization screen that contains identifiers for school, course name, etc
 
 anonymize_names <- function(name_column, algo = "md5") {
   sapply(name_column, function(single_name) {
     if (is.na(single_name) || single_name == "") {
       return(NA)
-    }
-    else {
-      tolower(trimws(single_name))
+    } else {
+      single_name <- tolower(trimws(single_name))
       return(digest(single_name, algo = algo))
     }
   })
 }
 
 modified_data$name <- anonymize_names(modified_data$name)
+modified_data <- rename(modified_data, hash_id = name)
+
+# ANALYTICS ---------------------------------------------------------------
+# TODO Count of each pattern
+
+# BUILD COUNTS
+# TODO Add capability to catch NAs into Unsure
+summary_stats <- data.frame(
+  total_count  = nrow(modified_data),
+  yes_count    = nrow(filter(modified_data, dark_pattern_interaction == "Yes")),
+  unsure_count = nrow(filter(modified_data, dark_pattern_interaction == "Unsure")),
+  no_count     = nrow(filter(modified_data, dark_pattern_interaction == "No"))
+)
+
+# ERROR CHECK: BUILD COUNTS
+if (summary_stats$total_count != summary_stats$yes_count + summary_stats$unsure_count + summary_stats$no_count) {
+  print("ERROR: total != combined count")
+}
+
+# BUILD PCT
+# TODO Add error check
+summary_stats <- summary_stats %>%
+  select(total_count, yes_count, unsure_count, no_count) %>%
+  mutate(
+    yes_pct = (yes_count / total_count),
+    unsure_pct = (unsure_count / total_count),
+    no_pct = (no_count / total_count)
+  ) %>%
+  relocate(yes_pct, .after = yes_count) %>%
+  relocate(unsure_pct, .after = unsure_count) %>%
+  relocate(no_pct, .after = no_count)
+
+# BUILD DATE RANGE
+# TODO Add error check
+# TODO Add tracking for most relevant day, time, etc
+# TODO Force data format (should be received as proper format though)
+summary_stats <- summary_stats %>%
+  mutate(
+    start_date = min(modified_data$timestamp),
+    end_date = max(modified_data$timestamp),
+    time_span_days = floor(as.numeric(difftime(max(modified_data$timestamp), min(modified_data$timestamp), units = "days"))),
+    time_span_months = floor(as.numeric(difftime(max(modified_data$timestamp), min(modified_data$timestamp), units = "weeks")))
+  )
+
+# BUILD CONCERN RANGE
+# TODO Investigate how to replace NA values
+summary_stats <- summary_stats %>%
+  mutate(
+    mean_concern     = mean(modified_data$concern_level, na.rm = TRUE),
+    median_concern   = median(modified_data$concern_level, na.rm = TRUE),
+    sd_concern       = sd(modified_data$concern_level, na.rm = TRUE),
+    na_concern_count = sum(is.na(modified_data$concern_level)),
+    na_concern_pct   = na_concern_count / total_count
+  )
+
+# TEST BLOCK, NA REPLACEMENT ----------------------------------------------
+
+
+summary_stats_na_replacement_test_mean <- summary_stats %>%
+  mutate(
+    mean_concern_filled     = mean(ifelse(is.na(modified_data$concern_level), mean_concern, modified_data$concern_level)),
+    median_concern_filled   = median(ifelse(is.na(modified_data$concern_level), mean_concern, modified_data$concern_level)),
+    sd_concern_filled       = sd(ifelse(is.na(modified_data$concern_level), mean_concern, modified_data$concern_level)),
+    na_concern_count_filled = sum(is.na(ifelse(is.na(modified_data$concern_level), mean_concern, modified_data$concern_level)))
+  )
+
+summary_stats_na_replacement_test_median <- summary_stats %>%
+  mutate(
+    mean_concern_filled     = mean(ifelse(is.na(modified_data$concern_level), median_concern, modified_data$concern_level)),
+    median_concern_filled   = median(ifelse(is.na(modified_data$concern_level), median_concern, modified_data$concern_level)),
+    sd_concern_filled       = sd(ifelse(is.na(modified_data$concern_level), median_concern, modified_data$concern_level)),
+    na_concern_count_filled = sum(is.na(ifelse(is.na(modified_data$concern_level), median_concern, modified_data$concern_level)))
+  )
+
+cat("=== Concern Level: Original (with NAs) ===\n")
+cat(sprintf("Mean:   %.4f\n", summary_stats$mean_concern))
+cat(sprintf("Median: %.4f\n", summary_stats$median_concern))
+cat(sprintf("SD:     %.4f\n", summary_stats$sd_concern))
+cat(sprintf("NAs:    %d (%.1f%%)\n\n", summary_stats$na_concern_count, summary_stats$na_concern_pct * 100))
+
+cat("=== Concern Level: NAs Replaced with Mean ===\n")
+cat(sprintf("Mean:   %.4f\n", summary_stats_na_replacement_test_mean$mean_concern_filled))
+cat(sprintf("Median: %.4f\n", summary_stats_na_replacement_test_mean$median_concern_filled))
+cat(sprintf("SD:     %.4f\n", summary_stats_na_replacement_test_mean$sd_concern_filled))
+cat(sprintf("NAs:    %d\n\n", summary_stats_na_replacement_test_mean$na_concern_count_filled))
+
+cat("=== Concern Level: NAs Replaced with Median ===\n")
+cat(sprintf("Mean:   %.4f\n", summary_stats_na_replacement_test_median$mean_concern_filled))
+cat(sprintf("Median: %.4f\n", summary_stats_na_replacement_test_median$median_concern_filled))
+cat(sprintf("SD:     %.4f\n", summary_stats_na_replacement_test_median$sd_concern_filled))
+cat(sprintf("NAs:    %d\n\n", summary_stats_na_replacement_test_median$na_concern_count_filled))
+
+
+
 
