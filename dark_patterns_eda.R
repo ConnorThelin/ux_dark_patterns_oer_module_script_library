@@ -231,21 +231,15 @@ summary_stats <- summary_stats %>%
     asymmetric_choice_count      = sum(modified_data$category == "Asymmetric Choice", na.rm = TRUE),
     other_interaction_count      = sum(modified_data$category == "Other", na.rm = TRUE),
     na_interaction_count         = sum(is.na(pre_elongation_data$involved_pattern)),
-    na_interaction_pct           = na_interaction_count / total_count
+    na_interaction_pct           = na_interaction_count / total_count,
+    unwarranted_na_count         = pre_elongation_data %>%
+      filter(dark_pattern_interaction %in% c("Yes", "Unsure") & is.na(involved_pattern)) %>%
+      nrow()
   )
 
 # Category selection frequency
 modified_data %>%
   count(category, sort = TRUE)
-
-# CHECK UNWARRANTED NAs ---------------------------------------------------
-
-summary_stats <- summary_stats %>%
-  mutate(
-    unwarranted_na_count = pre_elongation_data %>%
-      filter(dark_pattern_interaction %in% c("Yes", "Unsure") & is.na(involved_pattern)) %>%
-      nrow()
-  )
 
 # SUMMARY STATS: READ-OUT -------------------------------------------------
 
