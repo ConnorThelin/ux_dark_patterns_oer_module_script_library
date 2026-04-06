@@ -217,7 +217,7 @@ modified_data <- modified_data %>%
 # SUMMARY STATS: CATEGORY COUNTS ------------------------------------------
 # Counts selections per dark pattern category from the elongated data
 # na_interaction_count counts respondents with no pattern selected (from pre-elongation data), expected for "No" responses to dark_pattern_interaction
-# unwarranted_na_count flags respondents who answered Yes/Unsure but still left the pattern question blank, these are data errors
+# unexpected_na_count flags respondents who answered Yes/Unsure but left the pattern question blank, these are potential data errors
 
 summary_stats <- summary_stats %>%
   mutate(
@@ -232,7 +232,7 @@ summary_stats <- summary_stats %>%
     other_interaction_count      = sum(modified_data$category == "Other", na.rm = TRUE),
     na_interaction_count         = sum(is.na(pre_elongation_data$involved_pattern)),
     na_interaction_pct           = na_interaction_count / total_count,
-    unwarranted_na_count         = pre_elongation_data %>%
+    unexpected_na_count         = pre_elongation_data %>%
       filter(dark_pattern_interaction %in% c("Yes", "Unsure") & is.na(involved_pattern)) %>%
       nrow()
   )
