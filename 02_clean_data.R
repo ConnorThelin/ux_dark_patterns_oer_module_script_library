@@ -44,3 +44,22 @@ modified_data <- modified_data %>%
   ) %>%
   relocate(concern_level_label, .after = concern_level)
 
+
+# FORCE PROPER NA ON WRITTEN NA -------------------------------------------
+# TODO Add an open response look up table to reference
+clean_missing <- function(x) {
+  x <- trimws(tolower(x))
+  
+  x[x %in% c(
+    "", "na", "n/a", "none", "null", "nil", "n.a", "n a"
+  )] <- NA
+  
+  return(x)
+}
+
+modified_data <- modified_data %>%
+  mutate(across(
+    c(link_to_system, task, suspisious_element, personal_impact, comments),
+    clean_missing
+  ))
+
