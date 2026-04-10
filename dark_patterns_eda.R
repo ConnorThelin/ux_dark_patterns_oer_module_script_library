@@ -18,7 +18,6 @@ load_or_install <- function(pkg) {
 
 packages <- c(
   "tidyverse",
-  "ggplot2",
   "googlesheets4",
   "googledrive",
   "digest",
@@ -231,7 +230,7 @@ summary_stats <- summary_stats %>%
     asymmetric_choice_count      = sum(modified_data$category == "Asymmetric Choice", na.rm = TRUE),
     other_interaction_count      = sum(modified_data$category == "Other", na.rm = TRUE),
     na_interaction_count         = sum(is.na(pre_elongation_data$involved_pattern)),
-    na_interaction_pct           = na_interaction_count / total_count,
+    na_interaction_pct           = na_interaction_count / respondant_total_count,
     unexpected_na_count         = pre_elongation_data %>%
       filter(dark_pattern_interaction %in% c("Yes", "Unsure") & is.na(involved_pattern)) %>%
       nrow()
@@ -258,6 +257,4 @@ modified_data %>%
   inner_join(., ., by = "hash_id", relationship = "many-to-many") %>%
   filter(as.integer(category.x) < as.integer(category.y)) %>%
   count(category.x, category.y, sort = TRUE)
-
-
 
