@@ -126,18 +126,37 @@ pattern_category_summary <- pattern_category_df %>%
   count(category, .drop = FALSE) %>%
   mutate(percent = round(n / sum(n) * 100, 1))
 
+
+# OPEN RESPONSE SUMMARY ---------------------------------------------------
+
+open_response_summary <- modified_data %>%
+  filter(
+    !is.na(response_id) &
+      !is.na(link_to_system) &
+      !is.na(task) &
+      !is.na(suspisious_element) &
+      !is.na(personal_impact)
+  ) %>%
+  select(response_id, link_to_system, task, suspisious_element, personal_impact) %>%
+  arrange(response_id)
+
 # READOUT -----------------------------------------------------------------
+print_and_write = FALSE
 
-print(summary_stats)
-print(respondent_summary)
-print(per_question_summary)
-print(concern_level_summary)
-print(pattern_category_summary)
-print(incomplete_rows_summary)
+if (print_and_write == TRUE) {
+  print(summary_stats)
+  print(respondent_summary)
+  print(per_question_summary)
+  print(concern_level_summary)
+  print(pattern_category_summary)
+  print(incomplete_rows_summary)
+  print(open_response_summary)
 
-write.csv(summary_stats,            "summary_stats.csv",            row.names = FALSE)
-write.csv(respondent_summary,       "respondent_summary.csv",       row.names = FALSE)
-write.csv(per_question_summary,     "per_question_summary.csv",     row.names = FALSE)
-write.csv(concern_level_summary,    "concern_level_summary.csv",    row.names = FALSE)
-write.csv(pattern_category_summary, "pattern_category_summary.csv", row.names = FALSE)
-write.csv(incomplete_rows_summary,  "incomplete_rows.csv",          row.names = FALSE)
+  write.csv(summary_stats,            "summary_stats.csv",            row.names = FALSE)
+  write.csv(respondent_summary,       "respondent_summary.csv",       row.names = FALSE)
+  write.csv(per_question_summary,     "per_question_summary.csv",     row.names = FALSE)
+  write.csv(concern_level_summary,    "concern_level_summary.csv",    row.names = FALSE)
+  write.csv(pattern_category_summary, "pattern_category_summary.csv", row.names = FALSE)
+  write.csv(incomplete_rows_summary,  "incomplete_rows.csv",          row.names = FALSE)
+  write.csv(open_response_summary,    "open_response_summary.csv",    row.names = FALSE)
+  }
