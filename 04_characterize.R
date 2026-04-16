@@ -1,149 +1,409 @@
+# =============================================================================
+# EXPLORATORY DATA ANALYSIS
+# =============================================================================
+# Computes descriptive summaries across seven dimensions;
+# Optionally prints and exports each as a CSV.
+#
+# Outputs:
+#   summary_stats            : top-level counts, percents, and date range
+#   respondent_summary       : per-respondent response counts
+#   per_question_summary     : per-question answered counts and response rates
+#   concern_level_summary    : frequency and % breakdown of concern levels
+#   pattern_category_summary : frequency and % breakdown of dark pattern types
+#   incomplete_rows_summary  : rows where all question fields are blank/NA
+#   open_response_summary    : filtered view of complete open-response rows
+#   other_pattern_summary    : grouping of dark patterns characterized as `Other`
+#   cooccurrence_summary     : Co-occurrence rate of dark pattern pairs
+# =============================================================================
 
-# FIRST EDA PASS ----------------------------------------------------------
-
-# RESPONSE COUNTS ------------------------------------------
-
-# Counts Yes / Unsure / No responses to the dark pattern encounter question
-# TODO More advanced API calls are required to pull the name of the form (rather than the sheet)
+# -----------------------------------------------------------------------------
+# RESPONSE COUNTS
+# -----------------------------------------------------------------------------
+# Summarize total respondents (unique hash_ids) and total responses, then
+# breaks down responses by answer to dark_pattern_interaction (Yes/Unsure/No)
+# with counts and percentages.
+#
+# Sanity check: Yes + Unsure + No must equal total response count.
+#
+# TODO: More advanced API calls are required to pull the form name rather than
+#       the sheet name for sheet_name.
+# -----------------------------------------------------------------------------
 summary_stats <- modified_data %>%
   summarise(
+    # Keep track of the sheet/source name
     sheet_name             = sheet_name,
+    
+    # Count of unique respondents (based on anonymized IDs)
     respondant_total_count = n_distinct(hash_id),
+    
+    # Total number of responses (rows)
     response_total_count   = n(),
+    
+    # Count and percentage of "Yes" responses
     response_yes_count     = sum(dark_pattern_interaction == "Yes",    na.rm = TRUE),
     response_yes_pct       = round(response_yes_count    / response_total_count * 100, 1),
+    
+    # Count and percentage of "Unsure" responses
     response_unsure_count  = sum(dark_pattern_interaction == "Unsure", na.rm = TRUE),
     response_unsure_pct    = round(response_unsure_count / response_total_count * 100, 1),
+    
+    # Count and percentage of "No" responses
     response_no_count      = sum(dark_pattern_interaction == "No",     na.rm = TRUE),
     response_no_pct        = round(response_no_count     / response_total_count * 100, 1)
   )
 
-# Sanity check: yes + unsure + no should equal total
-if (summary_stats$response_total_count != summary_stats$response_yes_count + summary_stats$response_unsure_count + summary_stats$response_no_count) {
-  stop(
-    paste0(
-      "Sanity check failed: total (",
-      summary_stats$response_total_count,
-      ") != sum of categories (",
-      summary_stats$response_yes_count + summary_stats$response_unsure_count + summary_stats$response_no_count,
-      ")"
-    )
-  )
+# Sanity check:
+# Verify that total responses equal the sum of Yes + Unsure + No responses
+if (summary_stats$response_total_count !=
+    summary_stats$response_yes_count +
+    summary_stats$response_unsure_count +
+    summary_stats$response_no_count) {
+  
+  # Stop execution if counts do not match
+  stop(paste0(
+    "Sanity check failed: total (", summary_stats$response_total_count,
+    ") != sum of categories (",
+    summary_stats$response_yes_count +
+      summary_stats$response_unsure_count +
+      summary_stats$response_no_count, ")"
+  ))
 }
 
-
-# RESPONDANT RESPONSE COUNT -----------------------------------------------
-
+# -----------------------------------------------------------------------------
+# RESPONDENT RESPONSE COUNTS
+# -----------------------------------------------------------------------------
+# Groups by hash_id and counts how many times each respondent submitted the
+# form.
+# -----------------------------------------------------------------------------
 respondent_summary <- modified_data %>%
+  
+  # Group data by anonymized respondent ID
   group_by(hash_id) %>%
-  summarise(response_count = n(), .groups = "drop")
+  
+  # Count number of responses for each respondent
+  summarise(
+    response_count = n(),
+    
+    # Drop grouping structure after summarizing
+    .groups = "drop"
+  )
 
-
-# DATE RANGE -----------------------------------------------
-
-# Captures collection window from first to last timestamp
-# TODO Add error check
-# TODO Add tracking for most relevant day, time, etc
+# -----------------------------------------------------------------------------
+# DATE RANGE
+# -----------------------------------------------------------------------------
+# Derives the collection window from the earliest and latest timestamps,
+# expressed as a date range and as integer spans in days and weeks (floored).
+# Appended to summary_stats as additional columns.
+#
+# TODO: Add error check for missing or malformed timestamps.
+# TODO: Add tracking for most active day, time of day, etc.
+# -----------------------------------------------------------------------------
+# Add time-based summary fields to the existing summary statistics
 summary_stats <- summary_stats %>%
   mutate(
+    # Earliest timestamp in the data set (converted to Date)
     start_date = as.Date(min(modified_data$timestamp)),
-    end_date = as.Date(max(modified_data$timestamp)),
-    time_span_days = floor(as.numeric(difftime(max(modified_data$timestamp), min(modified_data$timestamp), units = "days"))),
-    time_span_weeks = floor(as.numeric(difftime(max(modified_data$timestamp), min(modified_data$timestamp), units = "weeks")))
+    
+    # Latest timestamp in the data set (converted to Date)
+    end_date   = as.Date(max(modified_data$timestamp)),
+    
+    # Total time span in days between first and last response (rounded down)
+    time_span_days = floor(as.numeric(difftime(
+      max(modified_data$timestamp),
+      min(modified_data$timestamp),
+      units = "days"
+    ))),
+    
+    # Total time span in weeks between first and last response (rounded down)
+    time_span_weeks = floor(as.numeric(difftime(
+      max(modified_data$timestamp),
+      min(modified_data$timestamp),
+      units = "weeks"
+    )))
   )
 
 
-# FLAG INCOMPLETE ---------------------------------------------------------
-
+# -----------------------------------------------------------------------------
+# FLAG INCOMPLETE ROWS
+# -----------------------------------------------------------------------------
+# Identify rows where all survey question fields are missing or empty
+#
+# Rows are considered complete if there is at least one question answered
+# -----------------------------------------------------------------------------
 incomplete_rows_summary <- modified_data %>%
+  
+  # Keep only rows where every column listed in question_lookup
+  # is either NA or an empty string
   filter(
-    if_all(all_of(names(question_lookup)), ~ is.na(.) | . == "")
+    if_all(
+      all_of(names(question_lookup)),
+      ~ is.na(.) | . == ""
+    )
   )
 
-# PER QUESTION RESPONSE RATE -------------------------------
-
+# -----------------------------------------------------------------------------
+# PER-QUESTION RESPONSE RATE
+# -----------------------------------------------------------------------------
+# For each question column defined in question_lookup, counts non-blank,
+# non-NA answers and expresses them as a percentage of total responses.
+# Pivots wide-to-long so each row represents one question.
+# -----------------------------------------------------------------------------
+# Create a per-question summary of response counts and rates
 per_question_summary <- modified_data %>%
-  summarise(across(all_of(names(question_lookup)), ~ sum(!is.na(.) & . != ""))) %>%
-  pivot_longer(everything(), names_to = "question_key", values_to = "answered_count") %>%
-  mutate(
-    question_number = row_number(),
-    response_rate   = round(answered_count / summary_stats$response_total_count * 100, 1),
-    question_text   = unname(question_lookup[question_key])
+  
+  # Count non-missing, non-empty responses for each question column
+  summarise(across(
+    all_of(names(question_lookup)),
+    ~ sum(!is.na(.) & . != "")
+  )) %>%
+  
+  # Convert from wide format (one column per question)
+  # to long format (one row per question)
+  pivot_longer(
+    everything(),
+    names_to  = "question_key",
+    values_to = "answered_count"
   ) %>%
-  select(question_number, question_key, answered_count, response_rate, question_text)
+  
+  mutate(
+    # Assign a sequential question number
+    question_number = row_number(),
+    
+    # Calculate response rate (%) based on total responses
+    response_rate_pct = round(
+      answered_count / summary_stats$response_total_count * 100, 1
+    ),
+    
+    # Map question keys to their full text using the lookup table
+    question_text = unname(question_lookup[question_key])
+  ) %>%
+  
+  # Keep and order relevant columns
+  select(
+    question_number,
+    question_key,
+    answered_count,
+    response_rate_pct,
+    question_text
+  )
 
-# CONCERN LEVEL SUMMARY --------------------------------------------------
-
+# -----------------------------------------------------------------------------
+# CONCERN LEVEL SUMMARY
+# -----------------------------------------------------------------------------
+# Appends mean, median, and SD of concern_level (as numeric) to summary_stats,
+# along with a count and percentage of NA responses.
+#
+# concern_level_summary provides a full frequency breakdown: one row per
+# concern level (1–5) with count and percentage of total non-NA responses.
+# Rows are ordered by concern_level for readability.
+#
+# NOTE: concern_level must be cast to numeric for arithmetic; it is stored as
+#       an ordered factor after data wrangling.
+# -----------------------------------------------------------------------------
 summary_stats <- summary_stats %>%
   mutate(
-    mean_concern     = mean(as.numeric(modified_data$concern_level), na.rm = TRUE),
-    median_concern   = median(as.numeric(modified_data$concern_level), na.rm = TRUE),
-    sd_concern       = sd(as.numeric(modified_data$concern_level), na.rm = TRUE),
+    # Mean of concern level (converted to numeric), excluding missing values
+    mean_concern = mean(as.numeric(modified_data$concern_level), na.rm = TRUE),
+    
+    # Median of concern level (numeric conversion), excluding missing values
+    median_concern = median(as.numeric(modified_data$concern_level), na.rm = TRUE),
+    
+    # Standard deviation of concern level (numeric conversion)
+    sd_concern = sd(as.numeric(modified_data$concern_level), na.rm = TRUE),
+    
+    # Count of missing concern level values
     na_concern_count = sum(is.na(modified_data$concern_level)),
-    na_concern_pct   = na_concern_count / response_total_count
+    
+    # Proportion of missing concern level values relative to total responses
+    na_concern_pct = na_concern_count / response_total_count
   )
 
+# Create a frequency table for concern levels with labels
 concern_level_summary <- modified_data %>%
-  count(concern_level, concern_level_label) %>%
-  mutate(percent = round(n / sum(n) * 100, 1)) %>%
+  
+  # Count occurrences of each concern level and its label
+  count(concern_level, concern_level_label, name = "count") %>%
+  
+  # Compute percentage of total responses per category
+  mutate(pct = round(count / sum(count) * 100, 1)) %>%
+  
+  # Order results by underlying numeric concern level
   arrange(concern_level)
 
-
-# PATTERN CATEGORY SUMMARY ------------------------------------------------
-
+# -----------------------------------------------------------------------------
+# DARK PATTERN CATEGORY SUMMARY
+# -----------------------------------------------------------------------------
+# Explodes the multi-select involved_pattern column (semicolon-delimited per
+# row) into one row per pattern selection, then maps each to one of the eight
+# FTC-defined dark pattern categories. Rows with no pattern selected by a
+# Yes/Unsure respondent are labelled "No Dark Pattern Selected"; all other
+# unmatched values fall to "Other".
+#
+# TODO: Replace the inline case_when category map with a look-up table in
+#       config.R to make category additions/edits easier to manage.
+# -----------------------------------------------------------------------------
+# Clean and standardize missing values in involved_pattern
 modified_data <- modified_data %>%
   mutate(
+    # Convert empty strings to NA for consistency
     involved_pattern = na_if(involved_pattern, ""),
+    
+    # Convert literal "NA" strings to actual NA values
     involved_pattern = na_if(involved_pattern, "NA")
   )
 
+# Expand and categorize involved patterns into structured categories
 pattern_category_df <- modified_data %>%
+  
+  # Split multiple patterns into separate rows based on delimiter
   separate_rows(involved_pattern, sep = "(?<=\\)), ") %>%
-  mutate(category = case_when(
-    str_detect(involved_pattern, "Social Proof")           ~ "Social Proof",
-    str_detect(involved_pattern, "Scarcity")               ~ "Scarcity",
-    str_detect(involved_pattern, "Urgency")                ~ "Urgency",
-    str_detect(involved_pattern, "Obstruction")            ~ "Obstruction",
-    str_detect(involved_pattern, "Sneaking")               ~ "Sneaking",
-    str_detect(involved_pattern, "Interface Interference") ~ "Interface Interference",
-    str_detect(involved_pattern, "Coerced Action")         ~ "Coerced Action",
-    str_detect(involved_pattern, "Asymmetric Choice")      ~ "Asymmetric Choice",
-    dark_pattern_interaction %in% c("Yes", "Unsure") & is.na(involved_pattern) | involved_pattern == "" ~ "No Dark Pattern Selected",
-    is.na(involved_pattern)                                ~ "NA",
-    TRUE                                                   ~ "Other"
-  ),
-  category = factor(category, levels = c(
-    "Social Proof", "Scarcity", "Urgency", "Obstruction", "Sneaking",
-    "Interface Interference", "Coerced Action", "Asymmetric Choice", "No Dark Pattern Selected", "Other"
-  )))
+  
+  # Assign each pattern to a meaningful category
+  mutate(
+    category = case_when(
+      
+      # Match known dark pattern categories
+      str_detect(involved_pattern, "Social Proof")           ~ "Social Proof",
+      str_detect(involved_pattern, "Scarcity")               ~ "Scarcity",
+      str_detect(involved_pattern, "Urgency")                ~ "Urgency",
+      str_detect(involved_pattern, "Obstruction")            ~ "Obstruction",
+      str_detect(involved_pattern, "Sneaking")               ~ "Sneaking",
+      str_detect(involved_pattern, "Interface Interference") ~ "Interface Interference",
+      str_detect(involved_pattern, "Coerced Action")         ~ "Coerced Action",
+      str_detect(involved_pattern, "Asymmetric Choice")      ~ "Asymmetric Choice",
+      
+      # Cases where interaction was reported but no pattern was selected
+      (dark_pattern_interaction %in% c("Yes", "Unsure") & is.na(involved_pattern)) |
+        (dark_pattern_interaction %in% c("Yes", "Unsure") & involved_pattern == "") ~ "No Dark Pattern Selected",
+      
+      # Explicit missing values
+      is.na(involved_pattern) ~ "NA",
+      
+      # Catch-all for anything not matched above
+      TRUE ~ "Other"
+    ),
+    
+    # Define ordering of categories for consistent reporting
+    category = factor(category, levels = c(
+      "Social Proof", "Scarcity", "Urgency", "Obstruction", "Sneaking",
+      "Interface Interference", "Coerced Action", "Asymmetric Choice",
+      "No Dark Pattern Selected", "Other"
+    ))
+  )
 
-pattern_category_df %>%
+# Summarize category counts and percentages
+pattern_category_summary <- pattern_category_df %>%
+  
+  # Count occurrences of each category (keep empty categories if present)
+  count(category, name = "category_count", .drop = FALSE) %>%
+  
+  # Compute percentage share of each category
+  mutate(pct_of_total = round(category_count / sum(category_count) * 100, 1))
+
+# -----------------------------------------------------------------------------
+# 'OTHER' PATTERN SUMMARY
+# -----------------------------------------------------------------------------
+# Extract all "Other" categorized patterns for further inspection
+# -----------------------------------------------------------------------------
+other_pattern_summary <- pattern_category_df %>%
+  
+  # Keep only rows classified as "Other"
   filter(category == "Other") %>%
-  select(involved_pattern) %>%
+  
+  # Select key identifiers and the raw pattern text for review
+  select(hash_id, response_id, involved_pattern) %>%
+  
+  # Remove duplicate rows to avoid repeated entries
   distinct()
 
-pattern_category_summary <- pattern_category_df %>%
-  count(category, .drop = FALSE) %>%
-  mutate(percent = round(n / sum(n) * 100, 1))
-
-
-# OPEN RESPONSE SUMMARY ---------------------------------------------------
-
+# -----------------------------------------------------------------------------
+# OPEN RESPONSE SUMMARY
+# -----------------------------------------------------------------------------
+# Filters to rows where all four core open-response fields are present
+# (non-NA), then selects and orders them for manual review or export.
+# -----------------------------------------------------------------------------
 open_response_summary <- modified_data %>%
+  
+  # Keep only rows where all key open-response fields are present
   filter(
     !is.na(response_id) &
       !is.na(link_to_system) &
       !is.na(task) &
-      !is.na(suspisious_element) &
+      !is.na(suspicious_element) &
       !is.na(personal_impact)
   ) %>%
-  select(response_id, link_to_system, task, suspisious_element, personal_impact) %>%
+  
+  # Select only the relevant open-ended response columns for analysis
+  select(
+    response_id,
+    link_to_system,
+    task,
+    suspicious_element,
+    personal_impact
+  ) %>%
+  
+  # Sort rows by response ID for easier review and tracing
   arrange(response_id)
 
-# READOUT -----------------------------------------------------------------
-print_and_write = FALSE
+# -----------------------------------------------------------------------------
+# COOCCURRENCE SUMMARY
+# -----------------------------------------------------------------------------
+# Counts how often each pair of dark pattern categories was tagged together
+# within the same response (same hash_id + response_id combination).
+# Filters out non-selection categories ("Other", "No Dark Pattern Selected",
+# and NA) before counting, then deduplicates symmetric pairs so (A, B) and
+# (B, A) are not counted separately.
+# -----------------------------------------------------------------------------
+cooccurrence_summary <- pattern_category_df %>%
+  
+  # Exclude non-explicit category selection and missing values
+  filter(
+    !category %in% c("Other", "No Dark Pattern Selected"),
+    !is.na(category)
+  ) %>%
+  
+  # Create a unique identifier for each response-level grouping
+  unite(category_group, hash_id, response_id, remove = FALSE) %>%
+  
+  # Count how often pairs co-occur within the same response
+  pairwise_count(category, category_group, sort = TRUE) %>%
+  
+  # Standardize ordering of category pairs (A–B == B–A)
+  mutate(
+    item1 = as.character(item1),
+    item2 = as.character(item2),
+    
+    pair1 = pmin(item1, item2),
+    pair2 = pmax(item1, item2)
+  ) %>%
+  
+  # Remove duplicate unordered pairs
+  distinct(pair1, pair2, .keep_all = TRUE) %>%
+  
+  # Drop helper columns
+  select(-pair1, -pair2) %>%
+  
+  # Rename final output columns for clarity
+  rename(
+    pattern_A = item1,
+    pattern_B = item2,
+    cooccurrence_count = n
+  )
 
-if (print_and_write == TRUE) {
+# -----------------------------------------------------------------------------
+# READOUT
+# -----------------------------------------------------------------------------
+# When print_and_write is TRUE, prints all summaries to the console and writes
+# each to a CSV in the working directory. Set to FALSE to suppress output
+# during non-interactive or pipeline runs.
+#
+# TODO: Replace the print_and_write flag with a formal config.R parameter or
+#       command-line argument for cleaner pipeline control.
+# -----------------------------------------------------------------------------
+print_and_write <- TRUE
+
+if (print_and_write) {
+  # Console Output Block
   print(summary_stats)
   print(respondent_summary)
   print(per_question_summary)
@@ -151,7 +411,10 @@ if (print_and_write == TRUE) {
   print(pattern_category_summary)
   print(incomplete_rows_summary)
   print(open_response_summary)
-
+  print(other_pattern_summary)
+  print(cooccurrence_summary)
+  
+  # CSV Writing Block
   write.csv(summary_stats,            "summary_stats.csv",            row.names = FALSE)
   write.csv(respondent_summary,       "respondent_summary.csv",       row.names = FALSE)
   write.csv(per_question_summary,     "per_question_summary.csv",     row.names = FALSE)
@@ -159,4 +422,6 @@ if (print_and_write == TRUE) {
   write.csv(pattern_category_summary, "pattern_category_summary.csv", row.names = FALSE)
   write.csv(incomplete_rows_summary,  "incomplete_rows.csv",          row.names = FALSE)
   write.csv(open_response_summary,    "open_response_summary.csv",    row.names = FALSE)
-  }
+  write.csv(other_pattern_summary,    "other_pattern_summary.csv",    row.names = FALSE)
+  write.csv(cooccurrence_summary,     "cooccurrence_summary.csv",     row.names = FALSE)
+}

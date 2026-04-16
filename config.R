@@ -1,24 +1,51 @@
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+# Central configuration file for the dark pattern survey data pipeline.
+# Defines all shared constants consumed by downstream scripts. Nothing here
+# should need to change between pipeline runs except when on boarding a new
+# course, quarter, or survey instrument.
+#
+# Contents:
+#   Packages         – Libraries required across the pipeline
+#   Google Sheet URL – Source of raw survey response data
+#   Course metadata  – School, course, and quarter abbreviation mappings
+#   Question lookup  – Maps short variable names to full survey question text
+#   Concern level    – Maps numeric Likert scores (1–5) to labeled categories
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# PACKAGE REQUIREMENTS
+# -----------------------------------------------------------------------------
 # Usages:
 # tidyverse: Base
 # googlesheets4: Google Sheet integration
 # googledrive: Google Drive Integration
 # digest: anonymization
 # janitor: clean_names()
+# widyr: pairwise_count()
 # styler: formatting
+# -----------------------------------------------------------------------------
 packages <- c(
   "tidyverse",
-  "ggplot2",
   "googlesheets4",
   "googledrive",
   "digest",
   "janitor",
+  "widyr",
   "styler"
 )
 
+# -----------------------------------------------------------------------------
+# GOOGLE SHEET URL
+# -----------------------------------------------------------------------------
 # A URL, in quotations, for the google sheet housing the survey data
 google_sheet_url <- "https://docs.google.com/spreadsheets/d/1vMhttsyyit3jwvAmZ0DEi_jWj7Hp-RS5SQR6I_E1ZFQ/edit?usp=sharing"
 
-# Course metadata, used for anonymization
+
+# -----------------------------------------------------------------------------
+# COURSE META DATA TABLES (WIP)
+# -----------------------------------------------------------------------------
 school_lookup <- c("University of Washington Bothell" = "UWB")
 
 course_lookup <- c("Usability and User-Centered Design" = "CSS478")
@@ -30,14 +57,19 @@ quarter_lookup <- c(
   "Summer" = "Su"
 )
 
-# Question look-up table
+
+# -----------------------------------------------------------------------------
+# QUESTION LOOK-UP TABLE
+# -----------------------------------------------------------------------------
+# Maps R variable names to full survey question text shown to participants
 question_lookup <- c(
   dark_pattern_interaction = "Did you have any interactions today that you suspect might involve a UX Dark Pattern ?",
   link_to_system = "If you reported 'yes' or 'unsure' please answer the following questions. Name and link to the system or service",
   task = "What were you trying to do?",
-  suspisious_element = "What was suss?",
-  personal_impact = "Did encountering this pattern impact you in any way?  Please explain.
-(Examples of possible impacts include but are not limited to:
+  suspicious_element = "What was suss?",
+  personal_impact =
+    "Did encountering this pattern impact you in any way?  Please explain.
+  (Examples of possible impacts include but are not limited to:
 -not achieving what you want to accomplish;
 -hindering what you wanted to accomplish;
 -costing you more time, money, or effort than anticipated/desired;
@@ -59,7 +91,10 @@ Patterns are from Appendix A of  2022 US FTC Staff Report Bringing Dark Patterns
   image = "If you have screenshots or other documentation, you can upload to 10 files of 100 MB in size via one submission."
 )
 
-# Concern Level look-up table
+# -----------------------------------------------------------------------------
+# CONCERN LEVEL LOOK-UP TABLE
+# -----------------------------------------------------------------------------
+# Maps the associated Likert scale with its respective integer
 concern_level_lookup <- c(
   "1" = "No concern",
   "2" = "Mild concern",
