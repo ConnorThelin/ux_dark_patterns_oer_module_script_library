@@ -15,6 +15,28 @@
 #       and response ID format to:
 #         Response_<quarter_code>_<unique_row_id>
 # -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# PARTICIPATION REPORT
+# -----------------------------------------------------------------------------
+# Generated before anonymization while real names are still available.
+# Contains only name and response count, no survey content. Intended for
+# the instructor to verify participation for grading purposes.
+# -----------------------------------------------------------------------------
+participation_report <- modified_data %>%
+  mutate(name = tolower(trimws(name))) %>%
+  filter(!is.na(name) & name != "") %>%
+  group_by(name) %>%
+  summarise(response_count = n(), .groups = "drop") %>%
+  arrange(name)
+
+# -----------------------------------------------------------------------------
+# ANONYMIZATION
+# -----------------------------------------------------------------------------
+# Replaces the name column with an MD5 hash (hash_id). Must run after the
+# participation report is written, as real names are permanently discarded.
+# -----------------------------------------------------------------------------
+
 # Helper function to anonymize names using a hashing algorithm (default: MD5)
 anonymize_names <- function(name_column, algo = "md5") {
   sapply(name_column, function(single_name) {

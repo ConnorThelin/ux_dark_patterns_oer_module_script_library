@@ -74,6 +74,8 @@ if (summary_stats$response_total_count !=
 # -----------------------------------------------------------------------------
 # Groups by hash_id and counts how many times each respondent submitted the
 # form.
+
+# TODO This functionality has been moved to 03_anonymization.R
 # -----------------------------------------------------------------------------
 respondent_summary <- modified_data %>%
   
