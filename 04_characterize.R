@@ -303,6 +303,22 @@ pattern_category_summary <- pattern_category_df %>%
   # Compute percentage share of each category
   mutate(pct_of_total = round(category_count / sum(category_count) * 100, 1))
 
+# Summarize how often each selection count occurs
+pattern_count_summary <- pattern_category_df %>%
+  
+  # Count distinct patterns selected per response
+  filter(
+    !category %in% c("No Dark Pattern Selected", "Other"),
+    !is.na(category)
+  ) %>%
+  group_by(hash_id, response_id) %>%
+  summarise(pattern_count = n(), .groups = "drop") %>%
+  
+  # Summarize how often each count occurs
+  count(pattern_count, name = "response_count") %>%
+  mutate(pct_of_total = round(response_count / sum(response_count) * 100, 1)) %>%
+  arrange(pattern_count)
+
 # -----------------------------------------------------------------------------
 # 'OTHER' PATTERN SUMMARY
 # -----------------------------------------------------------------------------
@@ -416,6 +432,7 @@ if (print_and_write) {
   print(open_response_summary)
   print(other_pattern_summary)
   print(cooccurrence_summary)
+  print(pattern_count_summary)
   
   # CSV Writing Block
   write.csv(summary_stats,            "summary_stats.csv",            row.names = FALSE)
@@ -427,4 +444,5 @@ if (print_and_write) {
   write.csv(open_response_summary,    "open_response_summary.csv",    row.names = FALSE)
   write.csv(other_pattern_summary,    "other_pattern_summary.csv",    row.names = FALSE)
   write.csv(cooccurrence_summary,     "cooccurrence_summary.csv",     row.names = FALSE)
+  write.csv(pattern_count_summary,    "pattern_count_summary.csv",    row.names = FALSE)
 }
