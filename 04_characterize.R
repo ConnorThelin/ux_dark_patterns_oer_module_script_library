@@ -233,10 +233,10 @@ concern_level_summary <- modified_data %>%
 # -----------------------------------------------------------------------------
 # DARK PATTERN CATEGORY SUMMARY
 # -----------------------------------------------------------------------------
-# Explodes the multi-select involved_pattern column (semicolon-delimited per
-# row) into one row per pattern selection, then maps each to one of the eight
+# Explodes the multi-select involved_pattern column 
+# into one row per pattern selection, then maps each to one of the eight
 # FTC-defined dark pattern categories. Rows with no pattern selected by a
-# Yes/Unsure respondent are labelled "No Dark Pattern Selected"; all other
+# Yes/Unsure respondent are labelled "No Dark Pattern Selected", all other
 # unmatched values fall to "Other".
 #
 # TODO: Replace the inline case_when category map with a look-up table in
@@ -255,7 +255,10 @@ modified_data <- modified_data %>%
 # Expand and categorize involved patterns into structured categories
 pattern_category_df <- modified_data %>%
   
-  # Split multiple patterns into separate rows based on delimiter
+  # Split patterns into one row per pattern.
+  # The REGEX (?<=\)) uses a lookbehind to split only on ", " that is
+  # immediately preceded by ")", ensuring commas inside parentheses
+  # (e.g. sub-examples within a category) are not treated as delimiters.
   separate_rows(involved_pattern, sep = "(?<=\\)), ") %>%
   
   # Assign each pattern to a meaningful category
