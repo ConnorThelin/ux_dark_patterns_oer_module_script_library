@@ -1,0 +1,26 @@
+"question_number","question_key","answered_count","response_rate_pct","question_text"
+1,"dark_pattern_interaction",374,100,"Did you have any interactions today that you suspect might involve a UX Dark Pattern ?"
+2,"link_to_system",152,40.6,"If you reported 'yes' or 'unsure' please answer the following questions. Name and link to the system or service"
+3,"task",151,40.4,"What were you trying to do?"
+4,"suspicious_element",153,40.9,"What was suss?"
+5,"personal_impact",150,40.1,"Did encountering this pattern impact you in any way?  Please explain.
+  (Examples of possible impacts include but are not limited to:
+-not achieving what you want to accomplish;
+-hindering what you wanted to accomplish;
+-costing you more time, money, or effort than anticipated/desired;
+-less confidence or less certainty that you have achieved your aim
+-less confidence or less certainty that you have mitigated undesirable consequences;
+-undue emotional labor;
+-possible consequences for others;
+and so on.) "
+6,"concern_level",165,44.1,"Based on your personal feelings at this time, please mark the degree of concern you have about this incident.
+No concern (1)
+Mild concern (2)
+Moderate concern (3)
+High concern (4)
+Extreme concern(5)"
+7,"image_captured",167,44.7,"Images or video of a problematic interaction are very helpful for analysis. Did you capture any images or video of the interaction you are reporting on?  (We will reach out when the collection period is concluded to collect.)"
+8,"involved_pattern",154,41.2,"Which UX Dark Patterns do you think might be involved (if any)? (Check all that apply)
+Patterns are from Appendix A of  2022 US FTC Staff Report Bringing Dark Patterns to Light'"
+9,"comments",86,23,"Anything else?"
+10,"image",22,5.9,"If you have screenshots or other documentation, you can upload to 10 files of 100 MB in size via one submission."

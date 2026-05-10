@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 .test_env.R
+.positai
+*.csv

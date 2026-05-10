@@ -5,7 +5,7 @@
 # Optionally prints and exports each as a CSV.
 #
 # Outputs:
-#   summary_stats            : top-level counts, percents, and date range
+#   descriptive_stats            : top-level counts, percents, and date range
 #   respondent_summary       : per-respondent response counts
 #   per_question_summary     : per-question answered counts and response rates
 #   concern_level_summary    : frequency and % breakdown of concern levels
@@ -24,11 +24,8 @@
 # with counts and percentages.
 #
 # Sanity check: Yes + Unsure + No must equal total response count.
-#
-# TODO: More advanced API calls are required to pull the form name rather than
-#       the sheet name for sheet_name.
 # -----------------------------------------------------------------------------
-summary_stats <- modified_data %>%
+descriptive_stats <- modified_data %>%
   summarise(
     # Keep track of the sheet/source name
     sheet_name             = sheet_name,
@@ -54,83 +51,75 @@ summary_stats <- modified_data %>%
 
 # Sanity check:
 # Verify that total responses equal the sum of Yes + Unsure + No responses
-if (summary_stats$response_total_count !=
-    summary_stats$response_yes_count +
-    summary_stats$response_unsure_count +
-    summary_stats$response_no_count) {
+if (descriptive_stats$response_total_count !=
+    descriptive_stats$response_yes_count +
+    descriptive_stats$response_unsure_count +
+    descriptive_stats$response_no_count) {
   
   # Stop execution if counts do not match
   stop(paste0(
-    "Sanity check failed: total (", summary_stats$response_total_count,
+    "Sanity check failed: total (", descriptive_stats$response_total_count,
     ") != sum of categories (",
-    summary_stats$response_yes_count +
-      summary_stats$response_unsure_count +
-      summary_stats$response_no_count, ")"
+    descriptive_stats$response_yes_count +
+      descriptive_stats$response_unsure_count +
+      descriptive_stats$response_no_count, ")"
   ))
 }
-
-# -----------------------------------------------------------------------------
-# RESPONDENT RESPONSE COUNTS
-# -----------------------------------------------------------------------------
-# Groups by hash_id and counts how many times each respondent submitted the
-# form.
-
-# TODO This functionality has been moved to 03_anonymization.R
-# -----------------------------------------------------------------------------
-respondent_summary <- modified_data %>%
-  
-  # Group data by anonymized respondent ID
-  group_by(hash_id) %>%
-  
-  # Count number of responses for each respondent
-  summarise(
-    response_count = n(),
-    
-    # Drop grouping structure after summarizing
-    .groups = "drop"
-  )
 
 # -----------------------------------------------------------------------------
 # DATE RANGE
 # -----------------------------------------------------------------------------
 # Derives the collection window from the earliest and latest timestamps,
 # expressed as a date range and as integer spans in days and weeks (floored).
-# Appended to summary_stats as additional columns.
+# Appended to descriptive_stats as additional columns.
+#
+# NOTE: Update the `timestamp_format` string below if your CSV uses a
+#       different date/time format. Common examples:
+#         "%m/%d/%Y %H:%M:%S"  →  01/15/2025 14:30:00
+#         "%Y-%m-%d %H:%M:%S"  →  2025-01-15 14:30:00
+#         "%m/%d/%Y %H:%M"     →  01/15/2025 14:30
 #
 # TODO: Add error check for missing or malformed timestamps.
 # TODO: Add tracking for most active day, time of day, etc.
 # -----------------------------------------------------------------------------
-# Add time-based summary fields to the existing summary statistics
-summary_stats <- summary_stats %>%
-  mutate(
-    # Earliest timestamp in the data set (converted to Date)
-    start_date = as.Date(min(modified_data$timestamp)),
-    
-    # Latest timestamp in the data set (converted to Date)
-    end_date   = as.Date(max(modified_data$timestamp)),
-    
-    # Total time span in days between first and last response (rounded down)
-    time_span_days = floor(as.numeric(difftime(
-      max(modified_data$timestamp),
-      min(modified_data$timestamp),
-      units = "days"
-    ))),
-    
-    # Total time span in weeks between first and last response (rounded down)
-    time_span_weeks = floor(as.numeric(difftime(
-      max(modified_data$timestamp),
-      min(modified_data$timestamp),
-      units = "weeks"
-    )))
-  )
-
+if ("timestamp" %in% names(modified_data)) {
+  
+  # Update this format string to match your CSV's timestamp format
+  timestamp_format <- "%m/%d/%Y %H:%M:%S"
+  
+  # Parse timestamp column as POSIXct using the specified format
+  parsed_timestamps <- as.POSIXct(modified_data$timestamp, format = timestamp_format)
+  
+  # Warn and skip if parsing failed entirely
+  if (all(is.na(parsed_timestamps))) {
+    warning("Timestamp column found but could not be parsed, check `timestamp_format` in the date range section. Date range summary skipped.")
+  } else {
+    descriptive_stats <- descriptive_stats %>%
+      mutate(
+        start_date      = as.Date(min(parsed_timestamps, na.rm = TRUE)),
+        end_date        = as.Date(max(parsed_timestamps, na.rm = TRUE)),
+        time_span_days  = floor(as.numeric(difftime(
+          max(parsed_timestamps, na.rm = TRUE),
+          min(parsed_timestamps, na.rm = TRUE),
+          units = "days"
+        ))),
+        time_span_weeks = floor(as.numeric(difftime(
+          max(parsed_timestamps, na.rm = TRUE),
+          min(parsed_timestamps, na.rm = TRUE),
+          units = "weeks"
+        )))
+      )
+  }
+} else {
+  warning("No 'timestamp' column found in data — date range summary skipped.")
+}
 
 # -----------------------------------------------------------------------------
 # FLAG INCOMPLETE ROWS
 # -----------------------------------------------------------------------------
-# Identify rows where all survey question fields are missing or empty
+# Identify rows where all survey question fields are missing or empty.
 #
-# Rows are considered complete if there is at least one question answered
+# Rows are considered complete if there is at least one question answered.
 # -----------------------------------------------------------------------------
 incomplete_rows_summary <- modified_data %>%
   
@@ -150,7 +139,6 @@ incomplete_rows_summary <- modified_data %>%
 # non-NA answers and expresses them as a percentage of total responses.
 # Pivots wide-to-long so each row represents one question.
 # -----------------------------------------------------------------------------
-# Create a per-question summary of response counts and rates
 per_question_summary <- modified_data %>%
   
   # Count non-missing, non-empty responses for each question column
@@ -173,7 +161,7 @@ per_question_summary <- modified_data %>%
     
     # Calculate response rate (%) based on total responses
     response_rate_pct = round(
-      answered_count / summary_stats$response_total_count * 100, 1
+      answered_count / descriptive_stats$response_total_count * 100, 1
     ),
     
     # Map question keys to their full text using the lookup table
@@ -192,7 +180,7 @@ per_question_summary <- modified_data %>%
 # -----------------------------------------------------------------------------
 # CONCERN LEVEL SUMMARY
 # -----------------------------------------------------------------------------
-# Appends mean, median, and SD of concern_level (as numeric) to summary_stats,
+# Appends mean, median, and SD of concern_level (as numeric) to descriptive_stats,
 # along with a count and percentage of NA responses.
 #
 # concern_level_summary provides a full frequency breakdown: one row per
@@ -202,7 +190,7 @@ per_question_summary <- modified_data %>%
 # NOTE: concern_level must be cast to numeric for arithmetic; it is stored as
 #       an ordered factor after data wrangling.
 # -----------------------------------------------------------------------------
-summary_stats <- summary_stats %>%
+descriptive_stats <- descriptive_stats %>%
   mutate(
     # Mean of concern level (converted to numeric), excluding missing values
     mean_concern = mean(as.numeric(modified_data$concern_level), na.rm = TRUE),
@@ -235,7 +223,7 @@ concern_level_summary <- modified_data %>%
 # -----------------------------------------------------------------------------
 # DARK PATTERN CATEGORY SUMMARY
 # -----------------------------------------------------------------------------
-# Explodes the multi-select involved_pattern column 
+# Explodes the multi-select involved_pattern column
 # into one row per pattern selection, then maps each to one of the eight
 # FTC-defined dark pattern categories. Rows with no pattern selected by a
 # Yes/Unsure respondent are labelled "No Dark Pattern Selected", all other
@@ -406,8 +394,8 @@ cooccurrence_summary <- pattern_category_df %>%
   
   # Rename final output columns for clarity
   rename(
-    pattern_A = item1,
-    pattern_B = item2,
+    pattern_A          = item1,
+    pattern_B          = item2,
     cooccurrence_count = n
   )
 
@@ -425,8 +413,7 @@ print_and_write <- TRUE
 
 if (print_and_write) {
   # Console Output Block
-  print(summary_stats)
-  print(respondent_summary)
+  print(descriptive_stats)
   print(per_question_summary)
   print(concern_level_summary)
   print(pattern_category_summary)
@@ -437,8 +424,7 @@ if (print_and_write) {
   print(pattern_count_summary)
   
   # CSV Writing Block
-  write.csv(summary_stats,            "summary_stats.csv",            row.names = FALSE)
-  write.csv(respondent_summary,       "respondent_summary.csv",       row.names = FALSE)
+  write.csv(descriptive_stats,            "descriptive_stats.csv",            row.names = FALSE)
   write.csv(per_question_summary,     "per_question_summary.csv",     row.names = FALSE)
   write.csv(concern_level_summary,    "concern_level_summary.csv",    row.names = FALSE)
   write.csv(pattern_category_summary, "pattern_category_summary.csv", row.names = FALSE)

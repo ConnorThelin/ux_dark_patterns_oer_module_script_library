@@ -1,0 +1,57 @@
+"item1","item2","n"
+"Interface Interference","Sneaking",16
+"Sneaking","Interface Interference",16
+"Interface Interference","Coerced Action",15
+"Coerced Action","Interface Interference",15
+"Interface Interference","Urgency",12
+"Scarcity","Urgency",12
+"Urgency","Interface Interference",12
+"Urgency","Scarcity",12
+"Obstruction","Sneaking",10
+"Sneaking","Obstruction",10
+"Scarcity","Interface Interference",10
+"Interface Interference","Scarcity",10
+"Interface Interference","Asymmetric Choice",9
+"Coerced Action","Sneaking",9
+"Sneaking","Coerced Action",9
+"Social Proof","Urgency",9
+"Asymmetric Choice","Interface Interference",9
+"Social Proof","Interface Interference",9
+"Urgency","Social Proof",9
+"Interface Interference","Social Proof",9
+"Obstruction","Asymmetric Choice",8
+"Urgency","Sneaking",8
+"Asymmetric Choice","Obstruction",8
+"Sneaking","Urgency",8
+"Interface Interference","Obstruction",7
+"Obstruction","Interface Interference",7
+"Urgency","Coerced Action",6
+"Coerced Action","Urgency",6
+"Scarcity","Social Proof",6
+"Social Proof","Scarcity",6
+"Sneaking","Asymmetric Choice",5
+"Asymmetric Choice","Sneaking",5
+"Social Proof","Sneaking",4
+"Scarcity","Sneaking",4
+"Sneaking","Social Proof",4
+"Sneaking","Scarcity",4
+"Obstruction","Coerced Action",3
+"Social Proof","Coerced Action",3
+"Scarcity","Coerced Action",3
+"Coerced Action","Obstruction",3
+"Urgency","Obstruction",3
+"Scarcity","Obstruction",3
+"Obstruction","Urgency",3
+"Coerced Action","Social Proof",3
+"Coerced Action","Scarcity",3
+"Obstruction","Scarcity",3
+"Social Proof","Obstruction",2
+"Obstruction","Social Proof",2
+"Coerced Action","Asymmetric Choice",1
+"Urgency","Asymmetric Choice",1
+"Social Proof","Asymmetric Choice",1
+"Scarcity","Asymmetric Choice",1
+"Asymmetric Choice","Coerced Action",1
+"Asymmetric Choice","Urgency",1
+"Asymmetric Choice","Social Proof",1
+"Asymmetric Choice","Scarcity",1

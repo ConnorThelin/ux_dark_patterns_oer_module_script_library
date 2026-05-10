@@ -1,10 +1,7 @@
 # =============================================================================
 # PACKAGE LOADER
 # =============================================================================
-# Installs and loads all packages listed in `packages` (defined in config.R),
-# then authenticates with Google Drive and Google Sheets using a shared OAuth
-# token so that downstream scripts can read the survey data without prompting
-# for credentials again.
+# Installs and loads all packages listed in `packages` (defined in config.R).
 # =============================================================================
 
 # Helper function to load a collection of packages, installing first if necessary
@@ -20,9 +17,3 @@ load_or_install <- function(pkg) {
 
 # Apply load_or_install to each package in 'packages', suppressing associated console messages
 invisible(lapply(packages, load_or_install))
-
-# Authenticate access to Google Drive (opens browser or uses cached credentials)
-drive_auth()
-
-# Authenticate access to Google Sheets using the Drive authentication token
-gs4_auth(token = drive_token())
