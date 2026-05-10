@@ -3,12 +3,12 @@
 # =============================================================================
 # Central configuration file for the dark pattern survey data pipeline.
 # Defines all shared constants consumed by downstream scripts. Nothing here
-# should need to change between pipeline runs except when on boarding a new
+# should need to change between pipeline runs except when onboarding a new
 # course, quarter, or survey instrument.
 #
 # Contents:
 #   Packages         – Libraries required across the pipeline
-#   Google Sheet URL – Source of raw survey response data
+#   CSV Path         – Source of raw survey response data
 #   Course metadata  – School, course, and quarter abbreviation mappings
 #   Question lookup  – Maps short variable names to full survey question text
 #   Concern level    – Maps numeric Likert scores (1–5) to labeled categories
@@ -19,17 +19,13 @@
 # -----------------------------------------------------------------------------
 # Usages:
 # tidyverse: Base
-# googlesheets4: Google Sheet integration
-# googledrive: Google Drive Integration
-# digest: anonymization
-# janitor: clean_names()
-# widyr: pairwise_count()
-# styler: formatting
+# digest:    anonymization
+# janitor:   clean_names()
+# widyr:     pairwise_count()
+# styler:    formatting
 # -----------------------------------------------------------------------------
 packages <- c(
   "tidyverse",
-  "googlesheets4",
-  "googledrive",
   "digest",
   "janitor",
   "widyr",
@@ -37,10 +33,20 @@ packages <- c(
 )
 
 # -----------------------------------------------------------------------------
-# GOOGLE SHEET URL
+# CSV PATH
 # -----------------------------------------------------------------------------
-# A URL, in quotations, for the google sheet housing the survey data
-google_sheet_url <- "https://docs.google.com/spreadsheets/d/1vMhttsyyit3jwvAmZ0DEi_jWj7Hp-RS5SQR6I_E1ZFQ/edit?usp=sharing"
+# A file path, in quotations, to the CSV housing the survey data.
+# Can be a relative path (e.g., "data/survey_responses.csv") or absolute.
+csv_path <- "CSS 478 Diary Study.csv"
+
+# -----------------------------------------------------------------------------
+# EXPECTED RESPONDENT COUNT
+# -----------------------------------------------------------------------------
+# The number of respondents expected to have participated in the survey.
+# Used as a sanity check in participation_report.R to verify that the
+# number of unique participants matches expectations.
+# -----------------------------------------------------------------------------
+expected_respondent_count <- 84
 
 
 # -----------------------------------------------------------------------------
