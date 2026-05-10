@@ -5,3 +5,5 @@
 .test_env.R
 .positai
 *.csv
+test_env.R
+test_output
