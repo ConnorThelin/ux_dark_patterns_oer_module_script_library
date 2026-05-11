@@ -5,7 +5,7 @@
 # Optionally prints and exports each as a CSV.
 #
 # Outputs:
-#   descriptive_stats            : top-level counts, percents, and date range
+#   descriptive_stats        : top-level counts, percents, and date range
 #   respondent_summary       : per-respondent response counts
 #   per_question_summary     : per-question answered counts and response rates
 #   concern_level_summary    : frequency and % breakdown of concern levels
