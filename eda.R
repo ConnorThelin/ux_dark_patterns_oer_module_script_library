@@ -5,7 +5,7 @@
 # Optionally prints and exports each as a CSV.
 #
 # Outputs:
-#   descriptive_stats            : top-level counts, percents, and date range
+#   descriptive_stats        : top-level counts, percents, and date range
 #   respondent_summary       : per-respondent response counts
 #   per_question_summary     : per-question answered counts and response rates
 #   concern_level_summary    : frequency and % breakdown of concern levels
@@ -424,7 +424,7 @@ if (print_and_write) {
   print(pattern_count_summary)
   
   # CSV Writing Block
-  write.csv(descriptive_stats,            "descriptive_stats.csv",            row.names = FALSE)
+  write.csv(descriptive_stats,        "descriptive_stats.csv",            row.names = FALSE)
   write.csv(per_question_summary,     "per_question_summary.csv",     row.names = FALSE)
   write.csv(concern_level_summary,    "concern_level_summary.csv",    row.names = FALSE)
   write.csv(pattern_category_summary, "pattern_category_summary.csv", row.names = FALSE)
