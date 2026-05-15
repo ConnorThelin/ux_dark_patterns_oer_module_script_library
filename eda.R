@@ -409,7 +409,7 @@ cooccurrence_summary <- pattern_category_df %>%
 # TODO: Replace the print_and_write flag with a formal config.R parameter or
 #       command-line argument for cleaner pipeline control.
 # -----------------------------------------------------------------------------
-print_and_write <- TRUE
+print_and_write <- FALSE
 
 if (print_and_write) {
   # Console Output Block
@@ -424,7 +424,7 @@ if (print_and_write) {
   print(pattern_count_summary)
   
   # CSV Writing Block
-  write.csv(descriptive_stats,        "descriptive_stats.csv",            row.names = FALSE)
+  write.csv(descriptive_stats,        "descriptive_stats.csv",        row.names = FALSE)
   write.csv(per_question_summary,     "per_question_summary.csv",     row.names = FALSE)
   write.csv(concern_level_summary,    "concern_level_summary.csv",    row.names = FALSE)
   write.csv(pattern_category_summary, "pattern_category_summary.csv", row.names = FALSE)

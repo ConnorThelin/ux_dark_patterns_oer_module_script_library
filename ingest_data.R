@@ -12,3 +12,7 @@ if (!exists("raw_data")) {
   # Derive a sheet name from the CSV filename (without path or extension)
   sheet_name <- tools::file_path_sans_ext(basename(csv_path))
 }
+
+rm(
+  csv_path
+)

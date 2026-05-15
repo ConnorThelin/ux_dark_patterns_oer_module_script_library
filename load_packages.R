@@ -17,3 +17,8 @@ load_or_install <- function(pkg) {
 
 # Apply load_or_install to each package in 'packages', suppressing associated console messages
 invisible(lapply(packages, load_or_install))
+
+rm(
+  load_or_install,
+  packages
+  )

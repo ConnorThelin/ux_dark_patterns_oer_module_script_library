@@ -31,10 +31,11 @@ anonymize_names <- function(name_column, algo = "md5") {
 }
 
 # Capture unique cleaned names before hashing for use in sanity check
-pre_hash_unique_names <- unique(tolower(trimws(raw_data[[2]])))
+pre_hash_unique_names <- unique(name_corrected_data[[2]])
 
 # Create an anonymized copy of raw_data, preserving the original
-anon_data <- raw_data
+anon_data <- name_corrected_data
+
 anon_data[[2]] <- anonymize_names(anon_data[[2]])
 
 # Sanity check:
@@ -43,6 +44,13 @@ anon_data[[2]] <- anonymize_names(anon_data[[2]])
 if (length(pre_hash_unique_names) != length(unique(anon_data[[2]]))) {
   stop("Sanity check failed: mismatch between cleaned names and hash IDs")
 }
+
+# Remove intermediate dataset
+rm(
+  name_corrected_data,
+  pre_hash_unique_names,
+  anonymize_names
+  )
 
 # Export anonymized raw data to CSV
 write.csv(anon_data, "student_ready_anonymized_raw_data.csv", row.names = FALSE)

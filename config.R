@@ -3,7 +3,7 @@
 # =============================================================================
 # Central configuration file for the dark pattern survey data pipeline.
 # Defines all shared constants consumed by downstream scripts. Nothing here
-# should need to change between pipeline runs except when onboarding a new
+# should need to change between pipeline runs except when on boarding a new
 # course, quarter, or survey instrument.
 #
 # Contents:
@@ -37,6 +37,9 @@ packages <- c(
 # -----------------------------------------------------------------------------
 # A file path, in quotations, to the CSV housing the survey data.
 # Can be a relative path (e.g., "data/survey_responses.csv") or absolute.
+#
+# <INSTRUCTOR INPUT REQUIRED>
+# -----------------------------------------------------------------------------
 csv_path <- "CSS 478 Diary Study.csv"
 
 # -----------------------------------------------------------------------------
@@ -45,6 +48,8 @@ csv_path <- "CSS 478 Diary Study.csv"
 # The number of respondents expected to have participated in the survey.
 # Used as a sanity check in participation_report.R to verify that the
 # number of unique participants matches expectations.
+#
+# <INSTRUCTOR INPUT REQUIRED>
 # -----------------------------------------------------------------------------
 expected_respondent_count <- 84
 
