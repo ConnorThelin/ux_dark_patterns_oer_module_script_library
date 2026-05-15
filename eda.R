@@ -434,3 +434,10 @@ if (print_and_write) {
   write.csv(cooccurrence_summary,     "cooccurrence_summary.csv",     row.names = FALSE)
   write.csv(pattern_count_summary,    "pattern_count_summary.csv",    row.names = FALSE)
 }
+
+# -----------------------------------------------------------------------------
+# AD-HOC
+# -----------------------------------------------------------------------------
+# This section is intended as a space for you to write your own analyses if desired.
+# -----------------------------------------------------------------------------
+

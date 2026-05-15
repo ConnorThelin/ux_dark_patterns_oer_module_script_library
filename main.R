@@ -37,11 +37,11 @@ safe_source <- function(file) {
     error = function(error) {
       # Print a message indicating which file caused the error
       message(paste("Error in:", file))
-     
-       # Print the specific error message for debugging
+      
+      # Print the specific error message for debugging
       message(error$message)
-     
-       # Return FALSE to indicate failure
+      
+      # Return FALSE to indicate failure
       FALSE
     }
   )

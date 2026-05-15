@@ -50,7 +50,7 @@ rm(
   name_corrected_data,
   pre_hash_unique_names,
   anonymize_names
-  )
+)
 
 # Export anonymized raw data to CSV
 write.csv(anon_data, "student_ready_anonymized_raw_data.csv", row.names = FALSE)

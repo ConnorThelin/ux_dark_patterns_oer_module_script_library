@@ -27,7 +27,7 @@ modified_data <- anon_data %>%
 # TODO: Move mappings to config.R for easier maintenance.
 # -----------------------------------------------------------------------------
 modified_data <- modified_data %>%
-  mutate(
+  rename(
     timestamp                = timestamp,
     hash_id                  = your_name_as_it_appears_in_canvas_will_be_anonymized_before_incidents_are_shared_with_the_class,
     dark_pattern_interaction = did_you_have_any_interactions_today_that_you_suspect_might_involve_a_ux_dark_pattern,

@@ -40,7 +40,11 @@ packages <- c(
 #
 # <INSTRUCTOR INPUT REQUIRED>
 # -----------------------------------------------------------------------------
-csv_path <- "CSS 478 Diary Study.csv"
+csv_path <- "CSV NAME HERE.csv"
+
+if (!file.exists(csv_path)) {
+  stop("CSV file not found. Please add your CSV to the project folder and try again.")
+}
 
 # -----------------------------------------------------------------------------
 # EXPECTED RESPONDENT COUNT
@@ -51,7 +55,7 @@ csv_path <- "CSS 478 Diary Study.csv"
 #
 # <INSTRUCTOR INPUT REQUIRED>
 # -----------------------------------------------------------------------------
-expected_respondent_count <- 84
+expected_respondent_count <- 0
 
 
 # -----------------------------------------------------------------------------

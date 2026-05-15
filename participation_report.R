@@ -11,7 +11,6 @@
 # Sources directly from raw_data using column position [2] to avoid
 # special character issues in the original header string.
 # =============================================================================
-
 # Step 1: Build initial report for inspection
 participation_report <- raw_data %>%
   mutate(name = tolower(trimws(.[[2]]))) %>%
@@ -20,16 +19,18 @@ participation_report <- raw_data %>%
   summarise(response_count = n(), .groups = "drop") %>%
   arrange(name)
 
+if (nrow(participation_report) != expected_respondent_count) {
+  warning(paste0(
+    "Respondent count mismatch: expected ", expected_respondent_count,
+    " but found ", nrow(participation_report), "."
+  ))
+}
+# =============================================================================
 # Step 2: Enter corrections identified via manual inspection
 name_corrections <- c(
-  # "old cleaned name" = "corrected name"
-  "fiona tampi (day 1 & 2)" = "fiona tampi",
-  "dhruva p" = "dhruva pyapali",
-  "nehemiah seobroto" = "nehemiah soebroto",
-  "taylor kuo" = "taylor ruby kuo",
-  "zachary" = "zachary savage"
+  # "old cleaned name" = "corrected name",
 )
-
+# =============================================================================
 # Step 3: Rebuild report with corrections applied
 participation_report <- raw_data %>%
   mutate(name = tolower(trimws(.[[2]]))) %>%
@@ -38,24 +39,19 @@ participation_report <- raw_data %>%
   group_by(name) %>%
   summarise(response_count = n(), .groups = "drop") %>%
   arrange(name)
-
-# Step 4: Sanity check
+# =============================================================================
+# Step 4: Final Sanity check
 if (nrow(participation_report) != expected_respondent_count) {
   warning(paste0(
     "Respondent count mismatch: expected ", expected_respondent_count,
     " but found ", nrow(participation_report), "."
   ))
 }
-
+# =============================================================================
 # Step 5: Write the corrections into the raw data, while preserving the original data set.
 name_corrected_data <- raw_data
 name_corrected_data[[2]] <- recode(tolower(trimws(name_corrected_data[[2]])), !!!name_corrections)
+# =============================================================================
 
 # Write participation report to CSV
 write.csv(participation_report, "participation_report.csv", row.names = FALSE)
-
-# Remove intermediate data objects
-rm(
-  name_corrections,
-  expected_respondent_count
-)
