@@ -412,17 +412,6 @@ cooccurrence_summary <- pattern_category_df %>%
 print_and_write <- FALSE
 
 if (print_and_write) {
-  # Console Output Block
-  print(descriptive_stats)
-  print(per_question_summary)
-  print(concern_level_summary)
-  print(pattern_category_summary)
-  print(incomplete_rows_summary)
-  print(open_response_summary)
-  print(other_pattern_summary)
-  print(cooccurrence_summary)
-  print(pattern_count_summary)
-  
   # CSV Writing Block
   write.csv(descriptive_stats,        "descriptive_stats.csv",        row.names = FALSE)
   write.csv(per_question_summary,     "per_question_summary.csv",     row.names = FALSE)
