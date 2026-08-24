@@ -190,26 +190,29 @@ per_question_summary <- modified_data %>%
 # NOTE: concern_level must be cast to numeric for arithmetic; it is stored as
 #       an ordered factor after data wrangling.
 # -----------------------------------------------------------------------------
+# ---- Restrict to Yes/Unsure responses for concern-level calculations ----
+modified_data_concern <- modified_data[modified_data[[4]] %in% c("Yes", "Unsure"), ]
+
 descriptive_stats <- descriptive_stats %>%
   mutate(
     # Mean of concern level (converted to numeric), excluding missing values
-    mean_concern = mean(as.numeric(modified_data$concern_level), na.rm = TRUE),
+    mean_concern = mean(as.numeric(modified_data_concern$concern_level), na.rm = TRUE),
     
     # Median of concern level (numeric conversion), excluding missing values
-    median_concern = median(as.numeric(modified_data$concern_level), na.rm = TRUE),
+    median_concern = median(as.numeric(modified_data_concern$concern_level), na.rm = TRUE),
     
     # Standard deviation of concern level (numeric conversion)
-    sd_concern = sd(as.numeric(modified_data$concern_level), na.rm = TRUE),
+    sd_concern = sd(as.numeric(modified_data_concern$concern_level), na.rm = TRUE),
     
     # Count of missing concern level values
-    na_concern_count = sum(is.na(modified_data$concern_level)),
+    na_concern_count = sum(is.na(modified_data_concern$concern_level)),
     
     # Proportion of missing concern level values relative to total responses
     na_concern_pct = na_concern_count / response_total_count
   )
 
 # Create a frequency table for concern levels with labels
-concern_level_summary <- modified_data %>%
+concern_level_summary <- modified_data_concern %>%
   
   # Count occurrences of each concern level and its label
   count(concern_level, concern_level_label, name = "count") %>%
