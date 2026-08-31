@@ -1,4 +1,5 @@
-UX Deceptive Patterns OER Module Abstract
+# UX Deceptive Patterns OER Module Abstract
+
 UX Deceptive Patterns are defined by the U.S. Federal Trade Commission as “design practices that trick or manipulate users into making choices they would not otherwise have made and that may cause harm”. Though common, few students learn to identify these patterns. "An Evidential Exploration of Deceptive UX Patterns" is an educational module in which students apply UX research methods to identifying problematic patterns in everyday life.  
 
 This capstone project focused on working with Dr. Dharma Dailey to transform the module into an Open Educational Resource that computer science and data science instructors can deploy in their own classrooms even if they lack expertise  in HCI theory and UX research methods.
