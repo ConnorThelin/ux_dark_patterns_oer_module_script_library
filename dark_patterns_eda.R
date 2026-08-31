@@ -1,6 +1,6 @@
 # SETUP -------------------------------------------------------------------
 
-target_dir <- "C:/Users/conno/OneDrive/School/UW_2023-20XX/CSS Independent Study/R Version/Dark Patterns R"
+target_dir <- "directory_path"
 if (getwd() != target_dir) {
   setwd(target_dir)
 }
@@ -39,7 +39,7 @@ invisible(lapply(packages, load_or_install))
 # RAW DATA ----------------------------------------------------------------
 # Pulls from Google Sheets; guarded by exists() to prevent redundant API calls on re-runs within the same session
 if (!exists("raw_data")) {
-  sheet_url <- "https://docs.google.com/spreadsheets/d/1vMhttsyyit3jwvAmZ0DEi_jWj7Hp-RS5SQR6I_E1ZFQ/edit?usp=sharing"
+  sheet_url <- "sheet_url"
   raw_data <- read_sheet(sheet_url)
 }
 
