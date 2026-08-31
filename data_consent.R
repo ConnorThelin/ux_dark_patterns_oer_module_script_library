@@ -16,7 +16,7 @@
 # =============================================================================
 # TODO Formalize this to work in conjunction with an additional column in the 
 # diary study that asks for data consent
-consenting_student_names <- c("connor thelin")
+consenting_student_names <- c("consenting student names")
 
 filtered_by_consent_data <- name_corrected_data[
   tolower(trimws(name_corrected_data[[2]])) %in% consenting_student_names, 
